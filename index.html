@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090b10">
+<title>GTA CLIPPER — Studio</title>
+<style>
+:root{--bg:#090b10;--panel:#11151e;--panel2:#171d29;--line:#283244;--text:#f4f6fb;--muted:#9aa6b8;--accent:#b7ff3c;--accent2:#7fe000;--danger:#ff667a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 500px at 80% -10%,#1b293b 0%,transparent 60%),var(--bg);color:var(--text);font:15px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:920px;margin:auto;padding:18px 15px 46px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:.08em}.logo{width:38px;height:38px;border-radius:12px;background:var(--accent);color:#10140a;display:grid;place-items:center;font-weight:1000;font-size:19px}
+.pill{font-size:11px;color:var(--accent);border:1px solid #536c2c;background:#1a2510;padding:5px 9px;border-radius:99px;white-space:nowrap}
+h1{font-size:clamp(27px,6vw,42px);line-height:1.04;letter-spacing:-.04em;margin:8px 0 10px}h1 span{color:var(--accent)}
+.sub{color:var(--muted);max-width:650px;margin:0 0 20px}.panel{background:linear-gradient(145deg,#151b27,#0f131c);border:1px solid var(--line);border-radius:18px;padding:16px;margin:14px 0;box-shadow:0 12px 35px #0003}
+.panel h2{font-size:16px;margin:0 0 12px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:800;background:var(--accent);color:#11170a;cursor:pointer}.btn:disabled{opacity:.4;cursor:not-allowed}.btn.secondary{background:#252e3d;color:var(--text);border:1px solid #39465b}.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+input[type=file]{display:none}.filelabel{display:inline-flex;align-items:center;gap:8px;border:1px dashed #53627a;padding:13px 14px;border-radius:12px;color:var(--text);font-weight:700;cursor:pointer;width:100%;justify-content:center}
+.note{color:var(--muted);font-size:12px;margin-top:9px}.status{font-size:13px;color:var(--muted);margin-top:10px;min-height:18px}.status.good{color:var(--accent)}.status.bad{color:var(--danger)}
+video{width:100%;max-height:440px;background:#050609;border-radius:13px;display:block;margin-top:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}.field input{width:100%;background:#0b0f16;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:11px;font:inherit}
+.candidates{display:grid;gap:9px}.candidate{background:#0c1119;border:1px solid var(--line);border-radius:12px;padding:11px;display:flex;justify-content:space-between;align-items:center;gap:10px}.candidate small{display:block;color:var(--muted)}.candidate strong{font-size:14px}
+.tag{font-size:10px;color:#d4e7b5;background:#26351a;border-radius:99px;padding:4px 7px;white-space:nowrap}
+.progress{height:7px;background:#252d3a;border-radius:99px;overflow:hidden;margin-top:10px}.bar{height:100%;width:0;background:var(--accent);transition:width .2s}
+footer{color:#748094;font-size:11px;text-align:center;margin:25px 0}
+@media(max-width:520px){.grid{grid-template-columns:1fr 1fr}.panel{padding:14px}.top{margin-bottom:17px}.btn{flex:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="logo">G</div><div>GTA <span style="color:var(--accent)">CLIPPER</span></div></div>
+    <div class="pill">FREE • BROWSER MVP</div>
+  </header>
+  <h1>Turn long gameplay into<br><span>short-form clips.</span></h1>
+  <p class="sub">Upload a video you own or are authorized to edit. Find scene changes, choose moments and export vertical clips directly in your browser.</p>
+
+  <section class="panel">
+    <h2>01 / Add your source video</h2>
+    <label class="filelabel" for="file">＋ Choose video from this phone</label>
+    <input id="file" type="file" accept="video/*">
+    <div class="note">Local processing only. Your selected video is not uploaded to a server. Large videos may exceed your phone's memory.</div>
+    <video id="preview" controls playsinline hidden></video>
+    <div id="fileStatus" class="status">No video selected.</div>
+  </section>
+
+  <section class="panel">
+    <h2>02 / Find clip candidates</h2>
+    <div class="row">
+      <button class="btn" id="scan" disabled>Detect scene changes</button>
+      <button class="btn secondary" id="clear" disabled>Clear</button>
+    </div>
+    <div class="note">This detects visual cuts and changes. It does not understand dialogue, jokes, gameplay quality or virality. Review every suggestion.</div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+    <div id="scanStatus" class="status">Upload a video to begin.</div>
+    <div id="candidates" class="candidates"></div>
+  </section>
+
+  <section class="panel">
+    <h2>03 / Make a vertical clip</h2>
+    <div class="grid">
+      <div class="field"><label for="start">Start time (seconds)</label><input id="start" type="number" min="0" step=".1" value="0"></div>
+      <div class="field"><label for="end">End time (seconds)</label><input id="end" type="number" min="0" step=".1" value="20"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn secondary" id="useCurrent" disabled>Use current playhead</button>
+      <button class="btn" id="export" disabled>Export 9:16 clip</button>
+    </div>
+    <div class="note">Export records the selected section in real time. Keep this tab open and prevent your phone from sleeping. Browser support varies by device.</div>
+    <div id="exportStatus" class="status"></div>
+    <video id="outputPreview" controls playsinline hidden></video>
+    <a id="download" class="btn" style="display:none;text-decoration:none;margin-top:10px" download="gta-clip.webm">Download clip</a>
+  </section>
+
+  <section class="panel">
+    <h2>Next upgrades</h2>
+    <div class="grid">
+      <div><strong>AI transcript highlights</strong><div class="note">Find exciting dialogue and reactions using speech-to-text.</div></div>
+      <div><strong>Smart captions</strong><div class="note">Animated subtitles with safe-area positioning.</div></div>
+      <div><strong>Batch clip queue</strong><div class="note">Create and organize multiple clips.</div></div>
+      <div><strong>Creator analytics</strong><div class="note">Track views and campaign payout manually.</div></div>
+    </div>
+  </section>
+  <footer>GTA CLIPPER is an independent editing tool and is not affiliated with Rockstar Games. Only edit and publish footage you have rights or permission to use.</footer>
+</div>
+<script>
+const fileInput=document.getElementById('file'), video=document.getElementById('preview');
+const scanBtn=document.getElementById('scan'), clearBtn=document.getElementById('clear');
+const statusEl=document.getElementById('fileStatus'), scanStatus=document.getElementById('scanStatus');
+const candidatesEl=document.getElementById('candidates'), bar=document.getElementById('bar');
+const startEl=document.getElementById('start'),endEl=document.getElementById('end');
+const exportBtn=document.getElementById('export'),useCurrent=document.getElementById('useCurrent');
+let objectUrl=null, duration=0, scanPoints=[];
+const fmt=s=>{s=Math.max(0,Math.floor(s));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
+function setStatus(el,msg,kind=''){el.textContent=msg;el.className='status '+kind}
+fileInput.addEventListener('change',()=>{
+ const f=fileInput.files[0]; if(!f)return;
+ if(objectUrl)URL.revokeObjectURL(objectUrl);
+ objectUrl=URL.createObjectURL(f);video.src=objectUrl;video.hidden=false;
+ video.onloadedmetadata=()=>{duration=video.duration;statusEl.textContent=`${f.name} • ${fmt(duration)} • ${(f.size/1024/1024).toFixed(1)} MB`;scanBtn.disabled=false;clearBtn.disabled=false;exportBtn.disabled=false;useCurrent.disabled=false;endEl.value=Math.min(20,duration).toFixed(1);startEl.value='0';setStatus(scanStatus,'Ready to scan.','good')};
+});
+clearBtn.addEventListener('click',()=>{candidatesEl.innerHTML='';scanPoints=[];bar.style.width='0%';setStatus(scanStatus,'Suggestions cleared.')});
+useCurrent.addEventListener('click',()=>{startEl.value=Math.max(0,video.currentTime-5).toFixed(1);endEl.value=Math.min(duration,video.currentTime+15).toFixed(1)});
+function addCandidate(t,score){
+ const s=Math.max(0,t-7),e=Math.min(duration,t+13);
+ const div=document.createElement('div');div.className='candidate';
+ const left=document.createElement('div');left.innerHTML=`<strong>Scene change near ${fmt(t)}</strong><small>Suggested range: ${s.toFixed(1)}s – ${e.toFixed(1)}s</small>`;
+ const b=document.createElement('button');b.className='btn secondary';b.textContent='Use clip';
+ b.onclick=()=>{startEl.value=s.toFixed(1);endEl.value=e.toFixed(1);video.currentTime=s;video.play().catch(()=>{});};
+ const tag=document.createElement('span');tag.className='tag';tag.textContent='VISUAL CUT';
+ div.append(left,tag,b);candidatesEl.append(div);
+}
+scanBtn.addEventListener('click',async()=>{
+ if(!duration)return;
+ candidatesEl.innerHTML='';scanPoints=[];scanBtn.disabled=true;setStatus(scanStatus,'Scanning sampled frames…');
+ const sample=document.createElement('video');sample.src=objectUrl;sample.muted=true;sample.playsInline=true;
+ await new Promise((res,rej)=>{sample.onloadedmetadata=res;sample.onerror=rej});
+ const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
+ canvas.width=96;canvas.height=54;
+ let previous=null, lastCut=-30, count=0, total=Math.min(180,Math.floor(duration/2));
+ try{
+  for(let i=0;i<total;i++){
+   const t=Math.min(duration-.05,i*(duration/total));
+   await new Promise(resolve=>{sample.currentTime=t;sample.onseeked=resolve});
+   ctx.drawImage(sample,0,0,96,54);
+   const data=ctx.getImageData(0,0,96,54).data;
+   if(previous){
+    let diff=0;for(let p=0;p<data.length;p+=16)diff+=Math.abs(data[p]-previous[p])+Math.abs(data[p+1]-previous[p+1])+Math.abs(data[p+2]-previous[p+2]);
+    diff/=((data.length/16)*3*255);
+    if(diff>.24 && t-lastCut>12 && t>3 && t<duration-3){scanPoints.push(t);lastCut=t}
+   }
+   previous=data;count++;bar.style.width=((count/total)*100)+'%';
+   if(i%8===0)await new Promise(r=>setTimeout(r,0));
+  }
+  scanPoints=scanPoints.slice(0,30);
+  scanPoints.forEach(t=>addCandidate(t));
+  setStatus(scanStatus,scanPoints.length?`Found ${scanPoints.length} possible visual cuts. Review and choose a range.`:'No clear cuts detected. Try a different video or set timestamps manually.', 'good');
+ }catch(e){setStatus(scanStatus,'Could not scan this file in this browser. You can still set timestamps manually.','bad')}
+ scanBtn.disabled=false;
+});
+function pickMime(){return ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t))||''}
+exportBtn.addEventListener('click',async()=>{
+ const s=Number(startEl.value),e=Number(endEl.value);
+ if(!video.src||!Number.isFinite(s)||!Number.isFinite(e)||s<0||e<=s||e>duration){setStatus(document.getElementById('exportStatus'),'Enter a valid start/end range within the video.','bad');return}
+ if(!video.captureStream&&!video.mozCaptureStream){setStatus(document.getElementById('exportStatus'),'This browser does not support video capture. Try Chrome on Android or a desktop browser.','bad');return}
+ if(!window.MediaRecorder){setStatus(document.getElementById('exportStatus'),'MediaRecorder is not supported in this browser.','bad');return}
+ exportBtn.disabled=true;setStatus(document.getElementById('exportStatus'),'Preparing vertical export…');
+ const streamFn=video.captureStream||video.mozCaptureStream;
+ const source=streamFn.call(video);
+ const canvas=document.createElement('canvas');canvas.width=720;canvas.height=1280;
+ const c=canvas.getContext('2d');
+ const draw=()=>{if(video.videoWidth){const sw=video.videoWidth,sh=video.videoHeight,srcRatio=sw/sh,dstRatio=9/16;let sx=0,sy=0,sw2=sw,sh2=sh;if(srcRatio>dstRatio){sw2=sh*dstRatio;sx=(sw-sw2)/2}else{sh2=sw/dstRatio;sy=(sh-sh2)/2}c.drawImage(video,sx,sy,sw2,sh2,0,0,720,1280)}};
+ let raf;const paint=()=>{draw();raf=requestAnimationFrame(paint)};
+ const canvasStream=canvas.captureStream(30);
+ source.getAudioTracks().forEach(t=>canvasStream.addTrack(t));
+ const mime=pickMime();let recorder;
+ try{recorder=new MediaRecorder(canvasStream,mime?{mimeType:mime}:undefined)}catch(err){setStatus(document.getElementById('exportStatus'),'Could not start recording on this browser.','bad');exportBtn.disabled=false;return}
+ const chunks=[];recorder.ondataavailable=ev=>{if(ev.data.size)chunks.push(ev.data)};
+ recorder.onstop=()=>{
+  cancelAnimationFrame(raf);const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});
+  const url=URL.createObjectURL(blob);const out=document.getElementById('outputPreview'),link=document.getElementById('download');
+  out.src=url;out.hidden=false;link.href=url;link.style.display='inline-block';
+  setStatus(document.getElementById('exportStatus'),`Export complete • ${(blob.size/1024/1024).toFixed(1)} MB. Download your clip.`,'good');
+  exportBtn.disabled=false;canvasStream.getTracks().forEach(t=>t.stop());
+ };
+ video.pause();video.currentTime=s;
+ await new Promise(resolve=>{video.onseeked=resolve});
+ paint();recorder.start(250);
+ try{await video.play()}catch(err){recorder.stop();setStatus(document.getElementById('exportStatus'),'Tap play permission if prompted, then try export again.','bad');exportBtn.disabled=false;return}
+ setStatus(document.getElementById('exportStatus'),'Recording selected range in real time… keep this tab open.');
+ const timer=setInterval(()=>{if(video.currentTime>=e||video.ended){clearInterval(timer);video.pause();if(recorder.state!=='inactive')recorder.stop()}},100);
+});
+</script>
+</body></html>
